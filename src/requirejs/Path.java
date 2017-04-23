@@ -88,7 +88,6 @@ public class Path {
 
         result = resolveWithRequireJs();
         if (null != result) {
-            component.showDebugNotification("Require resolved dependency " + getOriginValue());
             return result;
         }
 
@@ -269,10 +268,9 @@ public class Path {
         String requirePath = component.getRequirePath();
         String requireConfig = component.getRequireConfig();
         if (requirePath == null) {
-            component.showDebugNotification("Path to require.js was not set, cannot use require to resolve.");
             return null;
         } else if (requireConfig == null) {
-            component.showDebugNotification("requireConfig was not set, cannot use require to resolve.");
+            component.showErrorConfigNotification("requireConfig was not set, cannot use require to resolve.");
             return null;
         }
         RequireJsRuntime runtime = getRequireRuntime(requirePath, requireConfig);

@@ -289,7 +289,7 @@ public class RequirejsProjectComponent implements ProjectComponent {
             return null;
         }
         if (settings.requireJsPath == null) {
-            showErrorConfigNotification("Path to require.js wasn't set.");
+            showErrorConfigNotification("Path to require.js was not set, cannot use require to resolve.");
             return null;
         }
         VirtualFile file = findPathInContentRoot(settings.requireJsPath);
