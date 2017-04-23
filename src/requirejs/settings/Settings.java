@@ -18,14 +18,18 @@ public class Settings implements PersistentStateComponent<Settings> {
     public static final String DEFAULT_PUBLIC_PATH = "public";
     public static final String DEFAULT_CONFIG_FILE_PATH = "main.js";
     public static final String DEFAULT_BASEURL = ".";
+    public static final String DEFAULT_REQUIRE_JS_PATH = "public/lib/require.js";
     public static final boolean DEFAULT_PLUGIN_ENABLED = false;
     public static final boolean DEFAULT_OVERRIDE_BASEURL = false;
+    public static final boolean DEFAULT_REQUIRE_JS_ENABLED = false;
 
     public String publicPath = DEFAULT_PUBLIC_PATH;
     public String configFilePath = DEFAULT_CONFIG_FILE_PATH;
     public String baseUrl = DEFAULT_BASEURL;
+    public String requireJsPath = DEFAULT_REQUIRE_JS_PATH;
     public boolean overrideBaseUrl = DEFAULT_OVERRIDE_BASEURL;
     public boolean pluginEnabled = DEFAULT_PLUGIN_ENABLED;
+    public boolean requireJsEnabled = DEFAULT_REQUIRE_JS_ENABLED;
 
     protected Project project;
 

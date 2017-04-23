@@ -152,6 +152,10 @@ public class RequirejsProjectComponent implements ProjectComponent {
         }
     }
 
+    protected void showDebugNotification(String content) {
+        showInfoNotification(content, NotificationType.INFORMATION);
+    }
+
     public VirtualFile getWebDir(VirtualFile elementFile) {
         if (null != elementFile) {
             if (settings.publicPath.isEmpty()) {
@@ -277,6 +281,27 @@ public class RequirejsProjectComponent implements ProjectComponent {
         } else {
             return null;
         }
+    }
+
+    @Nullable
+    protected String getRequirePath() {
+        if (!settings.requireJsEnabled) {
+            return null;
+        }
+        if (settings.requireJsPath == null) {
+            showErrorConfigNotification("Path to require.js wasn't set.");
+            return null;
+        }
+        VirtualFile file = findPathInContentRoot(settings.requireJsPath);
+        return file.getCanonicalPath();
+    }
+
+    protected String getRequireConfig() {
+        VirtualFile file = findPathInWebDir(settings.configFilePath);
+        if (file != null) {
+            return file.getCanonicalPath();
+        }
+        return null;
     }
 
 //    private Date lastParse;

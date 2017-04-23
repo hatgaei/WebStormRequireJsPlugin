@@ -1,6 +1,7 @@
 package requirejs;
 
 import com.intellij.javascript.nodejs.library.NodeJsCoreModulesCatalog;
+import com.intellij.notification.NotificationType;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.psi.PsiDirectory;
 import com.intellij.psi.PsiElement;
@@ -17,6 +18,7 @@ public class Path {
     protected String originValue;
     protected String path;
     protected String module = null;
+    protected RequireJsRuntime requirejs = null;
 
     public static final List<String> MODULES_SKIPPED_RESOLVING = Arrays.asList(
             "goog",
@@ -82,6 +84,12 @@ public class Path {
 
         if (this.isBuildInVariable()) {
             return getContainingFile();
+        }
+
+        result = resolveWithRequireJs();
+        if (null != result) {
+            component.showDebugNotification("Require resolved dependency " + getOriginValue());
+            return result;
         }
 
         if (this.isAbsolutePath()) {
@@ -236,6 +244,51 @@ public class Path {
         } else {
             return null;
         }
+    }
+
+    @Nullable
+    protected PsiElement resolveWithRequireJs() {
+        PsiElement result;
+        String requirePath = getPathWithRequireJs();
+        if (requirePath != null) {
+            // Requirejs is relative to the config dir and resolves urls based on that directory.
+            VirtualFile baseUrl = component.getConfigFileDir();
+            VirtualFile target = FileUtils.findFileByPath(baseUrl, requirePath);
+            if (target != null) {
+                result = getPsiManager().findFile(target);
+                if (null != result) {
+                    return result;
+                }
+            }
+        }
+        return null;
+    }
+
+    @Nullable
+    protected String getPathWithRequireJs() {
+        String requirePath = component.getRequirePath();
+        String requireConfig = component.getRequireConfig();
+        if (requirePath == null) {
+            component.showDebugNotification("Path to require.js was not set, cannot use require to resolve.");
+            return null;
+        } else if (requireConfig == null) {
+            component.showDebugNotification("requireConfig was not set, cannot use require to resolve.");
+            return null;
+        }
+        RequireJsRuntime runtime = getRequireRuntime(requirePath, requireConfig);
+        String result = runtime.resolvePath(this.getOriginValue());
+        if (result == null) {
+            component.showInfoNotification("Plugin failed to resolve with requirejs.", NotificationType.ERROR);
+            return null;
+        }
+        return result;
+    }
+
+    protected RequireJsRuntime getRequireRuntime(String requirePath, String requireConfigPath) {
+        if (requirejs == null) {
+            requirejs = new RequireJsRuntime(component, requirePath, requireConfigPath);
+        }
+        return requirejs;
     }
 
     protected VirtualFile getElementFile() {
