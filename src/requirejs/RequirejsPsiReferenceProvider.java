@@ -28,12 +28,19 @@ public class RequirejsPsiReferenceProvider extends PsiReferenceProvider {
         }
 
         String path = psiElement.getText();
-        if (isRequireCall(psiElement) || isDefineFirstCollection(psiElement)) {
+        if ((isRequireCall(psiElement) || isDefineFirstCollection(psiElement)) && !isExcluded(projectComponent, path)) {
             PsiReference ref = new RequirejsReference(psiElement, new TextRange(1, path.length() - 1));
             return new PsiReference[] {ref};
         }
 
         return new PsiReference[0];
+    }
+
+    public boolean isExcluded(RequirejsProjectComponent component, String path) {
+        return component.getExcludedModules().stream().anyMatch((m) ->
+                path.equals(m)
+             || path.equals("'" + m + "'")
+             || path.equals("\"" + m + "\""));
     }
 
     public boolean isRequireCall(PsiElement element) {

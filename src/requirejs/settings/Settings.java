@@ -38,6 +38,7 @@ public class Settings implements PersistentStateComponent<Settings> {
     public boolean pluginEnabled = DEFAULT_PLUGIN_ENABLED;
     public boolean requireJsEnabled = DEFAULT_REQUIRE_JS_ENABLED;
     public boolean enableLogging = DEFAULT_LOGGING_ENABLED;
+    public List<String> exclusionList = new ArrayList<>();
     private List<SettingsListener> listeners = new ArrayList<>();
 
     protected Project project;

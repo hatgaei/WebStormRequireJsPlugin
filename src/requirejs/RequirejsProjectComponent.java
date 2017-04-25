@@ -339,12 +339,16 @@ public class RequirejsProjectComponent implements ProjectComponent, SettingsList
         return new RequireJsRuntime(this, requirePath, requireConfig);
     }
 
+    protected List<String> getExcludedModules() {
+        return settings.exclusionList;
+    }
+
 //    private Date lastParse;
 
     public boolean parseRequirejsConfig() {
         // Clear this flag so we can see any notifications on file change
         settingVersionLastShowNotification = null;
-        
+
         VirtualFile mainJsVirtualFile = findPathInWebDir(settings.configFilePath);
         if (null == mainJsVirtualFile) {
             this.showErrorConfigNotification("Config file not found. File " + settings.publicPath + '/' + settings.configFilePath + " not found in project");
