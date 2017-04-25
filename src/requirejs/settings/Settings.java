@@ -1,9 +1,14 @@
 package requirejs.settings;
 
+import com.intellij.ide.plugins.PluginManager;
+import com.intellij.ide.plugins.PluginManagerCore;
 import com.intellij.openapi.components.*;
 import com.intellij.openapi.project.Project;
 import com.intellij.util.xmlb.XmlSerializerUtil;
 import org.jetbrains.annotations.Nullable;
+
+import java.util.ArrayList;
+import java.util.List;
 
 @State(
         name = "RequirejsProjectComponent",
@@ -22,6 +27,7 @@ public class Settings implements PersistentStateComponent<Settings> {
     public static final boolean DEFAULT_PLUGIN_ENABLED = false;
     public static final boolean DEFAULT_OVERRIDE_BASEURL = false;
     public static final boolean DEFAULT_REQUIRE_JS_ENABLED = false;
+    public static final boolean DEFAULT_LOGGING_ENABLED = false;
 
     public String publicPath = DEFAULT_PUBLIC_PATH;
     public String configFilePath = DEFAULT_CONFIG_FILE_PATH;
@@ -30,6 +36,8 @@ public class Settings implements PersistentStateComponent<Settings> {
     public boolean overrideBaseUrl = DEFAULT_OVERRIDE_BASEURL;
     public boolean pluginEnabled = DEFAULT_PLUGIN_ENABLED;
     public boolean requireJsEnabled = DEFAULT_REQUIRE_JS_ENABLED;
+    public boolean enableLogging = DEFAULT_LOGGING_ENABLED;
+    private List<SettingsListener> listeners = new ArrayList<>();
 
     protected Project project;
 
@@ -42,6 +50,7 @@ public class Settings implements PersistentStateComponent<Settings> {
     @Nullable
     @Override
     public Settings getState() {
+        listeners.forEach(l -> l.settingsChanged(this));
         return this;
     }
 
@@ -52,5 +61,17 @@ public class Settings implements PersistentStateComponent<Settings> {
 
     public String getVersion() {
         return publicPath.concat(configFilePath);
+    }
+
+    public void registerListener(SettingsListener listener) {
+        listeners.add(listener);
+    }
+
+    public void removeListener(SettingsListener listener) {
+        listeners.remove(listener);
+    }
+
+    public interface SettingsListener {
+        void settingsChanged(Settings s);
     }
 }

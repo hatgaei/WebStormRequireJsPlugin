@@ -22,6 +22,7 @@ public class RequirejsSettingsPage implements Configurable {
     private JTextField baseUrlField;
     private JCheckBox enableRequireJsCheckBox;
     private JTextField requireJsPathField;
+    private JCheckBox enableLoggingCheckbox;
 
     public RequirejsSettingsPage(@NotNull final Project project) {
         this.project = project;
@@ -56,7 +57,8 @@ public class RequirejsSettingsPage implements Configurable {
                 || !overrideBaseUrlCheckbox.isSelected() == getSettings().overrideBaseUrl
                 || !baseUrlField.getText().equals(getSettings().baseUrl)
                 || !enableRequireJsCheckBox.isSelected() == getSettings().requireJsEnabled
-                || !requireJsPathField.getText().equals(getSettings().requireJsPath);
+                || !requireJsPathField.getText().equals(getSettings().requireJsPath)
+                || !enableLoggingCheckbox.isSelected() == getSettings().enableLogging;
     }
 
     @Override
@@ -77,6 +79,7 @@ public class RequirejsSettingsPage implements Configurable {
         }
         getSettings().requireJsEnabled = enableRequireJsCheckBox.isSelected();
         getSettings().requireJsPath = requireJsPathField.getText();
+        getSettings().enableLogging = enableLoggingCheckbox.isSelected();
 
         project.getComponent(RequirejsProjectComponent.class).validateSettings();
     }
@@ -89,6 +92,7 @@ public class RequirejsSettingsPage implements Configurable {
         baseUrlField.setText(getSettings().baseUrl);
         requireJsPathField.setText(getSettings().requireJsPath);
         enableRequireJsCheckBox.setSelected(getSettings().requireJsEnabled);
+        enableLoggingCheckbox.setSelected(getSettings().enableLogging);
     }
 
     @Override

@@ -7,27 +7,30 @@ import org.mozilla.javascript.Scriptable;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.util.HashMap;
+import java.util.Map;
 
 public class RequireJsRuntime {
 
     protected RequirejsProjectComponent component;
-    protected Context ctx;
-    protected Scriptable scope;
+    protected Scriptable globalScope;
+    private Map<String, String> cache = new HashMap<>();
 
     public RequireJsRuntime(RequirejsProjectComponent component, String requirePath, String requireConfig) {
-        Context ctx = Context.enter();
-        Scriptable scope = ctx.initStandardObjects();
-        this.component = component;
-        this.ctx = ctx;
-        this.scope = scope;
-        initRequireJs(requirePath, requireConfig);
+        withContext((ctx) -> {
+            Scriptable scope = ctx.initStandardObjects();
+            this.component = component;
+            this.globalScope = scope;
+            initRequireJs(ctx, requirePath, requireConfig);
+            return null;
+        });
     }
 
-    protected void initRequireJs(String requirePath, String requireConfig) {
+    protected void initRequireJs(Context ctx, String requirePath, String requireConfig) {
         try {
             // Loads both require and requirejs as scope variables.
             InputStreamReader in = new InputStreamReader(new FileInputStream(requirePath));
-            ctx.evaluateReader(scope, in, "requirejs", 1, null);
+            ctx.evaluateReader(globalScope, in, "requirejs", 1, null);
         } catch (IOException e) {
             component.showErrorConfigNotification("Could not load requirejs: " + requirePath
                     + "! Exception: " + e.getMessage());
@@ -35,7 +38,7 @@ public class RequireJsRuntime {
         try {
             // Actually configure require for real.
             InputStreamReader in = new InputStreamReader(new FileInputStream(requireConfig));
-            ctx.evaluateReader(scope, in, "requireConfig", 1, null);
+            ctx.evaluateReader(globalScope, in, "requireConfig", 1, null);
         } catch (IOException e) {
             component.showErrorConfigNotification("Could not load require config: " + requireConfig
                     + "! Exception: " + e.getMessage());
@@ -43,18 +46,40 @@ public class RequireJsRuntime {
     }
 
     public String resolvePath(String depName) {
-        Scriptable require = (Scriptable) scope.get("require", scope);
-        Object toUrl = require.get("toUrl", require);
-        if (!(toUrl instanceof Function)) {
-            component.showErrorConfigNotification("Failed to get require.toUrl() method (check your version of require?).");
-            return null;
+        if (cache.containsKey(depName)) {
+            return cache.get(depName);
         }
-        // Haxor time: require.toUrl() assumes file extensions, so just chuck a '.' at the end and remove it later.
-        Object args[] = { depName + "." };
-        Function f = (Function)toUrl;
-        Object result = f.call(ctx, scope, require, args);
-        String path = Context.toString(result);
-        path = path.replaceAll("\\.$", "");
+        String path = resolveWithRequire(depName);
+        cache.put(depName, path);
         return path;
+    }
+
+    private String resolveWithRequire(String depName) {
+        return withContext( (ctx) -> {
+            Scriptable require = (Scriptable) globalScope.get("require", globalScope);
+            Object toUrl = require.get("toUrl", require);
+            if (!(toUrl instanceof Function)) {
+                component.showErrorConfigNotification("Failed to get require.toUrl() method (check your version of require?).");
+                return null;
+            }
+            component.showDebugNotification("Attempting to load module '" + depName + "' from require config.");
+            // Haxor time: require.toUrl() assumes file extensions, so just chuck a '.' at the end and remove it later.
+            Object args[] = { depName + "." };
+            Function f = (Function)toUrl;
+            Object result = f.call(ctx, globalScope, require, args);
+            String path = Context.toString(result);
+            path = path.replaceAll("\\.$", "");
+            component.showDebugNotification("Looking for module '" + depName + "' at path '" + component.getConfigFileDir().toString() + "/" + path + "'");
+            return path;
+        });
+    }
+
+    private <T> T withContext(java.util.function.Function<Context, T> fn) {
+        Context ctx = Context.enter();
+        try {
+            return fn.apply(ctx);
+        } finally {
+            Context.exit();
+        }
     }
 }

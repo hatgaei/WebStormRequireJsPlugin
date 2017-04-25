@@ -18,7 +18,6 @@ public class Path {
     protected String originValue;
     protected String path;
     protected String module = null;
-    protected RequireJsRuntime requirejs = null;
 
     public static final List<String> MODULES_SKIPPED_RESOLVING = Arrays.asList(
             "goog",
@@ -265,28 +264,13 @@ public class Path {
 
     @Nullable
     protected String getPathWithRequireJs() {
-        String requirePath = component.getRequirePath();
-        String requireConfig = component.getRequireConfig();
-        if (requirePath == null) {
-            return null;
-        } else if (requireConfig == null) {
-            component.showErrorConfigNotification("requireConfig was not set, cannot use require to resolve.");
-            return null;
-        }
-        RequireJsRuntime runtime = getRequireRuntime(requirePath, requireConfig);
+        RequireJsRuntime runtime = component.getRequireRuntime();
         String result = runtime.resolvePath(this.getOriginValue());
         if (result == null) {
             component.showInfoNotification("Plugin failed to resolve with requirejs.", NotificationType.ERROR);
             return null;
         }
         return result;
-    }
-
-    protected RequireJsRuntime getRequireRuntime(String requirePath, String requireConfigPath) {
-        if (requirejs == null) {
-            requirejs = new RequireJsRuntime(component, requirePath, requireConfigPath);
-        }
-        return requirejs;
     }
 
     protected VirtualFile getElementFile() {

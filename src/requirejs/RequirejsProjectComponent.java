@@ -23,6 +23,7 @@ import com.intellij.psi.PsiDirectory;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiFile;
 import com.intellij.psi.PsiManager;
+import com.intellij.psi.impl.file.impl.FileManager;
 import com.intellij.psi.impl.source.PsiFileImpl;
 import com.intellij.psi.impl.source.tree.TreeElement;
 import com.intellij.psi.impl.source.xml.XmlFileImpl;
@@ -30,13 +31,14 @@ import com.intellij.psi.tree.TokenSet;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import requirejs.settings.Settings;
+import requirejs.settings.Settings.SettingsListener;
 
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
-public class RequirejsProjectComponent implements ProjectComponent {
+public class RequirejsProjectComponent implements ProjectComponent, SettingsListener {
     protected Project project;
     protected Settings settings;
     protected boolean settingValidStatus;
@@ -52,10 +54,12 @@ public class RequirejsProjectComponent implements ProjectComponent {
 
     private RequireConfigVfsListener vfsListener;
     public PackageConfig packageConfig;
+    protected RequireJsRuntime requirejs = null;
 
     public RequirejsProjectComponent(Project project) {
         this.project = project;
         settings = Settings.getInstance(project);
+        settings.registerListener(this);
         requirePaths = new RequirePaths(this);
         packageConfig = new PackageConfig(this);
     }
@@ -89,10 +93,32 @@ public class RequirejsProjectComponent implements ProjectComponent {
         if (isEnabled()) {
             validateSettings();
         }
+        // Reset the require runtime
+        initRequireRuntime();
+    }
+
+    private void initRequireRuntime() {
+        String requirePath = this.getRequirePath();
+        String requireConfig = this.getRequireConfig();
+        if (requirePath == null) {
+            return;
+        } else if (requireConfig == null) {
+            this.showErrorConfigNotification("requireConfig was not found, cannot use require.js to resolve.");
+            return;
+        }
+        requirejs = new RequireJsRuntime(this, requirePath, requireConfig);
+    }
+
+    @Override
+    public void settingsChanged(Settings state) {
+        this.settings = state;
+        stopWatchConfigFile();
+        initComponent();
     }
 
     @Override
     public void disposeComponent() {
+        Settings.getInstance(this.project).removeListener(this);
     }
 
     @NotNull
@@ -153,7 +179,9 @@ public class RequirejsProjectComponent implements ProjectComponent {
     }
 
     protected void showDebugNotification(String content) {
-        showInfoNotification(content, NotificationType.INFORMATION);
+        if (settings.enableLogging) {
+            showInfoNotification(content, NotificationType.INFORMATION);
+        }
     }
 
     public VirtualFile getWebDir(VirtualFile elementFile) {
@@ -302,6 +330,11 @@ public class RequirejsProjectComponent implements ProjectComponent {
             return file.getCanonicalPath();
         }
         return null;
+    }
+
+    @Nullable
+    protected RequireJsRuntime getRequireRuntime() {
+        return requirejs;
     }
 
 //    private Date lastParse;
