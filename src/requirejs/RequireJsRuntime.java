@@ -1,6 +1,8 @@
 package requirejs;
 
+import jdk.nashorn.internal.runtime.ECMAException;
 import org.mozilla.javascript.Context;
+import org.mozilla.javascript.EcmaError;
 import org.mozilla.javascript.Function;
 import org.mozilla.javascript.Scriptable;
 
@@ -18,30 +20,36 @@ public class RequireJsRuntime {
 
     public RequireJsRuntime(RequirejsProjectComponent component, String requirePath, String requireConfig) {
         withContext((ctx) -> {
-            Scriptable scope = ctx.initStandardObjects();
             this.component = component;
-            this.globalScope = scope;
+            this.globalScope = initScope(ctx);
             initRequireJs(ctx, requirePath, requireConfig);
             return null;
         });
     }
 
+    private Scriptable initScope(Context ctx) {
+        Scriptable scope = ctx.initStandardObjects();
+        // Init the window and console objects to kindly avoid reference errors.
+        ctx.evaluateString(scope, "var window = null;", "global", 1, null);
+        ctx.evaluateString(scope, "var console = null;", "global", 1, null);
+        return scope;
+    }
+
     protected void initRequireJs(Context ctx, String requirePath, String requireConfig) {
+        evaluateFile(ctx, requirePath);
+        evaluateFile(ctx, requireConfig);
+    }
+
+    private void evaluateFile(Context ctx, String sourceFile) {
         try {
-            // Loads both require and requirejs as scope variables.
-            InputStreamReader in = new InputStreamReader(new FileInputStream(requirePath));
-            ctx.evaluateReader(globalScope, in, "requirejs", 1, null);
+            InputStreamReader in = new InputStreamReader(new FileInputStream(sourceFile));
+            ctx.evaluateReader(globalScope, in, sourceFile, 1, null);
         } catch (IOException e) {
-            component.showErrorConfigNotification("Could not load requirejs: " + requirePath
-                    + "! Exception: " + e.getMessage());
-        }
-        try {
-            // Actually configure require for real.
-            InputStreamReader in = new InputStreamReader(new FileInputStream(requireConfig));
-            ctx.evaluateReader(globalScope, in, "requireConfig", 1, null);
-        } catch (IOException e) {
-            component.showErrorConfigNotification("Could not load require config: " + requireConfig
-                    + "! Exception: " + e.getMessage());
+            component.showErrorConfigNotification("IOException occurred while evaluating file '" + sourceFile
+                    + "'! Exception: \n\t" + e.getMessage());
+        } catch (ECMAException | EcmaError e) {
+            component.showErrorConfigNotification("Got js error evaluating file '" + sourceFile
+                    + "'! Exception: \n\t" + e.getMessage());
         }
     }
 

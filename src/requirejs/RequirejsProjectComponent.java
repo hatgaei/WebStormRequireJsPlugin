@@ -23,7 +23,6 @@ import com.intellij.psi.PsiDirectory;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiFile;
 import com.intellij.psi.PsiManager;
-import com.intellij.psi.impl.file.impl.FileManager;
 import com.intellij.psi.impl.source.PsiFileImpl;
 import com.intellij.psi.impl.source.tree.TreeElement;
 import com.intellij.psi.impl.source.xml.XmlFileImpl;
@@ -94,19 +93,7 @@ public class RequirejsProjectComponent implements ProjectComponent, SettingsList
             validateSettings();
         }
         // Reset the require runtime
-        initRequireRuntime();
-    }
-
-    private void initRequireRuntime() {
-        String requirePath = this.getRequirePath();
-        String requireConfig = this.getRequireConfig();
-        if (requirePath == null) {
-            return;
-        } else if (requireConfig == null) {
-            this.showErrorConfigNotification("requireConfig was not found, cannot use require.js to resolve.");
-            return;
-        }
-        requirejs = new RequireJsRuntime(this, requirePath, requireConfig);
+        requirejs = null;
     }
 
     @Override
@@ -334,12 +321,30 @@ public class RequirejsProjectComponent implements ProjectComponent, SettingsList
 
     @Nullable
     protected RequireJsRuntime getRequireRuntime() {
+        if (requirejs == null) {
+            requirejs = makeRequireRuntime();
+        }
         return requirejs;
+    }
+
+    private RequireJsRuntime makeRequireRuntime() {
+        String requirePath = this.getRequirePath();
+        String requireConfig = this.getRequireConfig();
+        if (requirePath == null) {
+            return null;
+        } else if (requireConfig == null) {
+            this.showErrorConfigNotification("requireConfig was not found, cannot use require.js to resolve.");
+            return null;
+        }
+        return new RequireJsRuntime(this, requirePath, requireConfig);
     }
 
 //    private Date lastParse;
 
     public boolean parseRequirejsConfig() {
+        // Clear this flag so we can see any notifications on file change
+        settingVersionLastShowNotification = null;
+        
         VirtualFile mainJsVirtualFile = findPathInWebDir(settings.configFilePath);
         if (null == mainJsVirtualFile) {
             this.showErrorConfigNotification("Config file not found. File " + settings.publicPath + '/' + settings.configFilePath + " not found in project");
@@ -363,7 +368,6 @@ public class RequirejsProjectComponent implements ProjectComponent, SettingsList
                 return false;
             }
         }
-
         return true;
     }
 

@@ -9,6 +9,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 @State(
         name = "RequirejsProjectComponent",
@@ -60,7 +61,8 @@ public class Settings implements PersistentStateComponent<Settings> {
     }
 
     public String getVersion() {
-        return publicPath.concat(configFilePath);
+        return "" + Objects.hash(publicPath, configFilePath, baseUrl, requireJsPath, overrideBaseUrl, pluginEnabled,
+                requireJsEnabled, enableLogging);
     }
 
     public void registerListener(SettingsListener listener) {

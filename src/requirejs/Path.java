@@ -265,6 +265,9 @@ public class Path {
     @Nullable
     protected String getPathWithRequireJs() {
         RequireJsRuntime runtime = component.getRequireRuntime();
+        if (runtime == null) {
+            return null;
+        }
         String result = runtime.resolvePath(this.getOriginValue());
         if (result == null) {
             component.showInfoNotification("Plugin failed to resolve with requirejs.", NotificationType.ERROR);
